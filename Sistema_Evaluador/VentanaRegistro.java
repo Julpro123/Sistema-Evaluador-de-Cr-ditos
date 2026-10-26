@@ -9,7 +9,7 @@ public class VentanaRegistro extends JDialog {
     private JPasswordField txtConfirmPassword;
 
     public VentanaRegistro(JFrame parent) {
-        super(parent, "Registro de Nuevo Usuario", true);
+        super(parent, "Registro de Nuevos Usuarios", true);
         setSize(380, 240);
         setLocationRelativeTo(parent);
         setLayout(new GridBagLayout());
