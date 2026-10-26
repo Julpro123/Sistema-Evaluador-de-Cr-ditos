@@ -7,11 +7,15 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+// Clase principal del gestor de base de datos.
+// Encargada de realizar operaciones de conexión y consultas para clientes y usuarios.
 public class GestorBD {
+    // Datos de conexión a la base de datos.
     private final String url;
     private final String usuario;
     private final String clave;
 
+    // Constructor por defecto: toma la configuración desde variables de entorno.
     public GestorBD() {
         this(
             valorEntorno("DB_URL", "jdbc:mysql://localhost:3306/evaluador_creditos"),
@@ -20,21 +24,25 @@ public class GestorBD {
         );
     }
 
+    // Constructor con parámetros explícitos para conexiones personalizadas.
     public GestorBD(String url, String usuario, String clave) {
         this.url = url;
         this.usuario = usuario;
         this.clave = clave;
     }
 
+    // Obtiene el valor de una variable de entorno y usa un valor por defecto si no existe.
     private static String valorEntorno(String nombre, String porDefecto) {
         String valor = System.getenv(nombre);
         return valor == null ? porDefecto : valor;
     }
 
+    // Crea la conexión JDBC usando la URL, usuario y contraseña configurados.
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection(url, usuario, clave);
     }
 
+    // Sección: manejo de clientes.
     public int guardarCliente(Cliente cliente) throws SQLException {
         String sql = "INSERT INTO clientes (nombre, ingresos, gastos, historial) VALUES (?, ?, ?, ?)";
         try (Connection cn = getConnection();
@@ -53,6 +61,7 @@ public class GestorBD {
         throw new SQLException("No se pudo obtener el identificador generado del cliente.");
     }
 
+    // Guarda datos adicionales dependiendo del tipo de cliente.
     public void guardarDetalle(int idCliente, Cliente cliente) throws SQLException {
         if (cliente instanceof Empresa) {
             Empresa empresa = (Empresa) cliente;
@@ -74,6 +83,7 @@ public class GestorBD {
         }
     }
 
+    // Consulta y devuelve una lista resumida de clientes.
     public List<Object[]> listarClientes() throws SQLException {
         String sql = "SELECT c.id_cliente, c.nombre, c.ingresos, c.gastos, c.historial, "
                 + "CASE WHEN e.id_empresa IS NOT NULL THEN 'Empresa' ELSE 'Persona Física' END AS tipo "
@@ -97,6 +107,7 @@ public class GestorBD {
         return filas;
     }
 
+    // Sección: manejo de usuarios del sistema.
     public boolean validarAcceso(String nombreUsuario, String claveUsuario) throws SQLException {
         String sql = "SELECT 1 FROM usuarios WHERE nombre_usuario = ? AND clave = ?";
         try (Connection cn = getConnection();
@@ -109,6 +120,7 @@ public class GestorBD {
         }
     }
 
+    // Registra un nuevo usuario en la tabla de usuarios.
     public void insertarUsuario(String nombreUsuario, String claveUsuario) throws SQLException {
         String sql = "INSERT INTO usuarios (nombre_usuario, clave) VALUES (?, ?)";
         try (Connection cn = getConnection();
@@ -119,6 +131,7 @@ public class GestorBD {
         }
     }
 
+    // Muestra todos los usuarios registrados ordenados por su identificador.
     public List<Object[]> listarUsuarios() throws SQLException {
         String sql = "SELECT id_usuario, nombre_usuario FROM usuarios ORDER BY id_usuario";
         List<Object[]> filas = new ArrayList<>();
@@ -132,6 +145,7 @@ public class GestorBD {
         return filas;
     }
 
+    // Elimina un usuario por su identificador y devuelve si se realizó la eliminación.
     public boolean eliminarUsuario(int idUsuario) throws SQLException {
         String sql = "DELETE FROM usuarios WHERE id_usuario = ?";
         try (Connection cn = getConnection();
