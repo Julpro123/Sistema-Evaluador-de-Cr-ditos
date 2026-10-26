@@ -9,7 +9,7 @@ public class VentanaRegistro extends JDialog {
     private JPasswordField txtConfirmPassword;
 
     public VentanaRegistro(JFrame parent) {
-        super(parent, "Registro de Nuevos Usuarios", true);
+        super(parent, "Registro de Nuevo Usuario", true);
         setSize(380, 240);
         setLocationRelativeTo(parent);
         setLayout(new GridBagLayout());
@@ -63,7 +63,7 @@ public class VentanaRegistro extends JDialog {
         }
 
         VentanaLogin.usuariosRegistrados.put(usuario, password);
-        JOptionPane.showMessageDialog(this, "¡Cuenta creada con éxito! Ya puede iniciar sesión.", "Registro Exitoso", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, "Cuenta creada con éxito! Ya puede iniciar sesión.", "Registro Exitoso", JOptionPane.INFORMATION_MESSAGE);
         this.dispose();
     }
 }
