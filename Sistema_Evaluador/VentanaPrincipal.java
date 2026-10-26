@@ -20,7 +20,7 @@ public class VentanaPrincipal extends JFrame {
     private JFormattedTextField txtCuil;
 
     public VentanaPrincipal() {
-        setTitle("Sistema de Evaluación de Créditos - Panel General");
+        setTitle("Panel General");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(950, 650);
         setLocationRelativeTo(null);
@@ -43,7 +43,7 @@ public class VentanaPrincipal extends JFrame {
 
         itemGuardar.addActionListener(e -> simularOperacionesBD("Guardando datos en la base de datos..."));
         itemSalir.addActionListener(e -> {
-            int confirm = JOptionPane.showConfirmDialog(this, "¿Desea cerrar sesión?", "Salir", JOptionPane.YES_NO_OPTION);
+            int confirm = JOptionPane.showConfirmDialog(this, "Desea cerrar sesión?", "Salir", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 System.exit(0);
             }
@@ -95,7 +95,7 @@ public class VentanaPrincipal extends JFrame {
 
     private JPanel crearFormularioCliente() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Alta / Edición de Cliente"));
+        panel.setBorder(BorderFactory.createTitledBorder("Edición de Cliente"));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -183,7 +183,7 @@ public class VentanaPrincipal extends JFrame {
         itemEliminar.addActionListener(e -> {
             int row = tablaUsuarios.getSelectedRow();
             if (row != -1) {
-                int confirm = JOptionPane.showConfirmDialog(this, "¿Eliminar usuario seleccionado?", "Confirmar", JOptionPane.YES_NO_OPTION);
+                int confirm = JOptionPane.showConfirmDialog(this, "Eliminar usuario seleccionado?", "Confirmar", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
                     int modelRow = tablaUsuarios.convertRowIndexToModel(row);
                     modeloTabla.removeRow(modelRow);

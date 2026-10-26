@@ -15,7 +15,7 @@ public class VentanaLogin extends JFrame {
     }};
 
     public VentanaLogin() {
-        setTitle("Login - Sistema Evaluador de Créditos");
+        setTitle("Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(420, 280);
         setLocationRelativeTo(null);
@@ -59,7 +59,7 @@ public class VentanaLogin extends JFrame {
         String password = new String(txtPassword.getPassword());
 
         if (usuariosRegistrados.containsKey(usuario) && usuariosRegistrados.get(usuario).equals(password)) {
-            JOptionPane.showMessageDialog(this, "¡Login exitoso! Bienvenido, " + usuario, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Bienvenido, " + usuario, "Éxito", JOptionPane.INFORMATION_MESSAGE);
             
             // Abre la VentanaPrincipal renombrada
             new VentanaPrincipal().setVisible(true);
