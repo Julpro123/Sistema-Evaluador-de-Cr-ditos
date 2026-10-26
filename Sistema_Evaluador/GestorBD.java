@@ -134,17 +134,17 @@ public class GestorBD {
     }
 
     // Muestra todos los usuarios registrados ordenados por su identificador.
-    public List<Object[]> listarUsuarios() throws SQLException {
+    public List<Usuario> listarUsuarios() throws SQLException {
         String sql = "SELECT id_usuario, nombre_usuario FROM usuarios ORDER BY id_usuario";
-        List<Object[]> filas = new ArrayList<>();
+        List<Usuario> usuarios = new ArrayList<>();
         try (Connection cn = getConnection();
              PreparedStatement ps = cn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                filas.add(new Object[] { rs.getInt("id_usuario"), rs.getString("nombre_usuario") });
+                usuarios.add(new Usuario(rs.getInt("id_usuario"), rs.getString("nombre_usuario")));
             }
         }
-        return filas;
+        return usuarios;
     }
 
     // Elimina un usuario por su identificador y devuelve si se realizó la eliminación.
