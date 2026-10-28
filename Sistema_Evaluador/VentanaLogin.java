@@ -2,15 +2,15 @@ package Sistema_Evaluador;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.SQLException;
 
 public class VentanaLogin extends JFrame {
 
     private JTextField txtUsuario;
     private JPasswordField txtPassword;
 
-    public static Map<String, String> usuariosRegistrados = new HashMap<>();
+    // Gestor que se encarga de hablar con la base de datos
+    private final GestorBD gestor = new GestorBD();
 
     public VentanaLogin() {
         setTitle("Login");
@@ -50,22 +50,36 @@ public class VentanaLogin extends JFrame {
         JButton btnIrRegistro = new JButton("Registrarse");
         btnIrRegistro.addActionListener(e -> abrirVentanaRegistro());
         add(btnIrRegistro, gbc);
+
+        // Enter en cualquiera de los campos equivale a "Iniciar Sesión"
+        getRootPane().setDefaultButton(btnLogin);
     }
 
+    // Valida el usuario y la clave contra la tabla "usuarios" de la base
     private void validarLogin() {
         String usuario = txtUsuario.getText().trim();
         String password = new String(txtPassword.getPassword());
 
-        if (usuariosRegistrados.containsKey(usuario) && usuariosRegistrados.get(usuario).equals(password)) {
-            JOptionPane.showMessageDialog(this, "Bienvenido, " + usuario, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        if (usuario.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Ingrese usuario y contraseña.", "Campos vacíos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
-            // Abre la VentanaPrincipal renombrada
-            new VentanaPrincipal().setVisible(true);
+        try {
+            if (gestor.validarAcceso(usuario, password)) {
+                JOptionPane.showMessageDialog(this, "Bienvenido, " + usuario, "Éxito", JOptionPane.INFORMATION_MESSAGE);
 
-            this.dispose();
-        } else {
-            JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos.", "Error de Autenticación", JOptionPane.ERROR_MESSAGE);
-            txtPassword.setText("");
+                new VentanaPrincipal().setVisible(true);
+
+                this.dispose();
+            } else {
+                JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos.", "Error de Autenticación", JOptionPane.ERROR_MESSAGE);
+                txtPassword.setText("");
+            }
+        } catch (SQLException ex) {
+            // Problema con la base (servidor apagado, credenciales de BD incorrectas, etc.)
+            JOptionPane.showMessageDialog(this, "No se pudo conectar con la base de datos: " + ex.getMessage(),
+                    "Error de conexión", JOptionPane.ERROR_MESSAGE);
         }
     }
 
