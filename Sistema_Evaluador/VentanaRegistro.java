@@ -57,13 +57,14 @@ public class VentanaRegistro extends JDialog {
             return;
         }
 
-        if (VentanaLogin.usuariosRegistrados.containsKey(usuario)) {
+        try {
+            new GestorBD().insertarUsuario(usuario, password);
+            JOptionPane.showMessageDialog(this, "Cuenta creada con éxito! Ya puede iniciar sesión.", "Registro Exitoso", JOptionPane.INFORMATION_MESSAGE);
+            this.dispose();
+        } catch (java.sql.SQLIntegrityConstraintViolationException ex) {
             JOptionPane.showMessageDialog(this, "El nombre de usuario ya existe. Elija otro.", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
+        } catch (java.sql.SQLException ex) {
+            JOptionPane.showMessageDialog(this, "No se pudo crear la cuenta: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
-
-        VentanaLogin.usuariosRegistrados.put(usuario, password);
-        JOptionPane.showMessageDialog(this, "Cuenta creada con éxito! Ya puede iniciar sesión.", "Registro Exitoso", JOptionPane.INFORMATION_MESSAGE);
-        this.dispose();
     }
 }
