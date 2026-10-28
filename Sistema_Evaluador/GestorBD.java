@@ -22,7 +22,7 @@ public class GestorBD {
         this(
             valorEntorno("DB_URL", "jdbc:mysql://localhost:3306/evaluador_creditos"),
             valorEntorno("DB_USER", "root"),
-            valorEntorno("DB_PASS", "")
+            valorEntorno("DB_PASS", "1411")
         );
     }
 
@@ -145,6 +145,26 @@ public class GestorBD {
             }
         }
         return usuarios;
+    }
+
+    // Modifica el nombre y la clave de un usuario. Si la clave viene vacía, solo cambia el nombre.
+    // Devuelve true si se modificó una fila.
+    public boolean modificarUsuario(int idUsuario, String nuevoNombre, String nuevaClave) throws SQLException {
+        boolean cambiaClave = !nuevaClave.isEmpty();
+        String sql = cambiaClave
+                ? "UPDATE usuarios SET nombre_usuario = ?, clave = ? WHERE id_usuario = ?"
+                : "UPDATE usuarios SET nombre_usuario = ? WHERE id_usuario = ?";
+        try (Connection cn = getConnection();
+             PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, nuevoNombre);
+            if (cambiaClave) {
+                ps.setString(2, nuevaClave);
+                ps.setInt(3, idUsuario);
+            } else {
+                ps.setInt(2, idUsuario);
+            }
+            return ps.executeUpdate() > 0;
+        }
     }
 
     // Elimina un usuario por su identificador y devuelve si se realizó la eliminación.

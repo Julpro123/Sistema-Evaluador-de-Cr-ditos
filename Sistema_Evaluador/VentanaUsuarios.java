@@ -37,10 +37,11 @@ public class VentanaUsuarios extends JFrame {
     private TableRowSorter<DefaultTableModel> sorter;
     // acceso a la base de datos
     private GestorBD gestor = new GestorBD();
-    // campos del formulario de alta
+    // campos y botones del formulario de arriba
     private JTextField campoNombreUsuario;
     private JPasswordField campoClave;
     private JButton botonCrearUsuario;
+    private JButton botonModificarUsuario;
     // botones del listado
     private JButton botonEliminarUsuario;
     private JButton botonRefrescar;
@@ -56,22 +57,23 @@ public class VentanaUsuarios extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
-        /* Formulario de alta en una grilla de 3 filas y 2 columnas:
-           etiqueta + campo para usuario y clave, y el botón crear */
+        /* Formulario en una grilla de 3 filas y 2 columnas:
+           etiqueta + campo para usuario y clave, y los botones crear y modificar */
         panelSuperior = new JPanel(new GridLayout(3, 2, 5, 5));
         campoNombreUsuario = new JTextField();
         campoClave = new JPasswordField();
         botonCrearUsuario = new JButton("Crear usuario");
+        botonModificarUsuario = new JButton("Modificar usuario");
 
         panelSuperior.add(new JLabel("Usuario:"));
         panelSuperior.add(campoNombreUsuario);
         panelSuperior.add(new JLabel("Clave:"));
         panelSuperior.add(campoClave);
-        // celda vacía para que quede bien el botón
-        panelSuperior.add(new JLabel());
         panelSuperior.add(botonCrearUsuario);
+        panelSuperior.add(botonModificarUsuario);
 
         botonCrearUsuario.addActionListener(e -> crearUsuario());
+        botonModificarUsuario.addActionListener(e -> modificarUsuario());
 
         panelInferior = new JPanel(new BorderLayout());
 
@@ -108,6 +110,13 @@ public class VentanaUsuarios extends JFrame {
 
         // Oculta la columna ID de la vista, pero el dato sigue en el modelo para poder eliminar
         tablaUsuarios.removeColumn(tablaUsuarios.getColumnModel().getColumn(0));
+
+        // Al seleccionar una fila, carga el nombre en el formulario para poder modificarlo
+        tablaUsuarios.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                cargarSeleccionEnFormulario();
+            }
+        });
 
         // La tabla va dentro de un JScrollPane para tener barra de desplazamiento
         panelInferior.add(new JScrollPane(tablaUsuarios), BorderLayout.CENTER);
@@ -204,6 +213,65 @@ public class VentanaUsuarios extends JFrame {
         }
     }
 
+    // Copia el nombre del usuario seleccionado al campo de arriba y limpia la clave
+    private void cargarSeleccionEnFormulario() {
+        int filaVista = tablaUsuarios.getSelectedRow();
+        if (filaVista == -1) {
+            return;
+        }
+        int filaModelo = tablaUsuarios.convertRowIndexToModel(filaVista);
+        campoNombreUsuario.setText((String) modelo.getValueAt(filaModelo, 1));
+        campoClave.setText("");
+    }
+
+    /* Modifica el usuario seleccionado en la tabla con los datos del formulario de arriba.
+       Si la clave queda vacía, se conserva la anterior */
+    private void modificarUsuario() {
+        int filaVista = tablaUsuarios.getSelectedRow();
+
+        if (filaVista == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccioná en la tabla el usuario a modificar.",
+                    "Sin selección", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Obtiene el ID de la fila seleccionada
+        int filaModelo = tablaUsuarios.convertRowIndexToModel(filaVista);
+        int id = (int) modelo.getValueAt(filaModelo, 0);
+
+        String nuevoNombre = campoNombreUsuario.getText().trim();
+        String nuevaClave = new String(campoClave.getPassword());
+
+        if (nuevoNombre.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "El nombre de usuario no puede estar vacío.",
+                    "Datos incompletos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        setOcupado(true);
+        try {
+            boolean modificado = gestor.modificarUsuario(id, nuevoNombre, nuevaClave);
+            if (!modificado) {
+                JOptionPane.showMessageDialog(this, "El usuario ya no existe en la base.",
+                        "Aviso", JOptionPane.INFORMATION_MESSAGE);
+            }
+            campoNombreUsuario.setText("");
+            campoClave.setText("");
+            cargarUsuarios();
+        } catch (SQLIntegrityConstraintViolationException ex) {
+            // El nombre nuevo ya lo tiene otro usuario (restricción UNIQUE)
+            JOptionPane.showMessageDialog(this, "El usuario \"" + nuevoNombre + "\" ya existe.",
+                    "Usuario repetido", JOptionPane.WARNING_MESSAGE);
+            campoNombreUsuario.requestFocus();
+            campoNombreUsuario.selectAll();
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "No se pudo modificar el usuario: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            setOcupado(false);
+        }
+    }
+
     /* Elimina el usuario seleccionado. Si no hay fila seleccionada avisa,
        si hay, recupera el ID desde el modelo y pide confirmación */
     private void eliminarUsuario() {
@@ -261,11 +329,12 @@ public class VentanaUsuarios extends JFrame {
         }
     }
 
-    /* Activa o detiene la barra de progreso y bloquea los botones mientras hay una operación con la base */
+    // Activa o detiene la barra de progreso y bloquea los botones mientras hay una operación con la base
     private void setOcupado(boolean ocupado) {
         barraProgreso.setIndeterminate(ocupado);
         botonCrearUsuario.setEnabled(!ocupado);
         botonEliminarUsuario.setEnabled(!ocupado);
+        botonModificarUsuario.setEnabled(!ocupado);
         botonRefrescar.setEnabled(!ocupado);
     }
 }
