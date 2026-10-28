@@ -55,7 +55,7 @@ public class VentanaPrincipal extends JFrame {
 
         JMenu menuGestion = new JMenu("Gestión");
         JMenuItem itemUsuarios = new JMenuItem("Módulo de Usuarios");
-        itemUsuarios.addActionListener(e -> JOptionPane.showMessageDialog(this, "Módulo de usuarios activo."));
+        itemUsuarios.addActionListener(e -> abrirVentanaUsuarios());
         menuGestion.add(itemUsuarios);
 
         menuBar.add(menuArchivo);
@@ -74,8 +74,7 @@ public class VentanaPrincipal extends JFrame {
 
         btnGuardar.addActionListener(e -> simularOperacionesBD("Guardando cambios..."));
         btnRefrescar.addActionListener(e -> simularOperacionesBD("Cargando lista de usuarios desde la BD..."));
-        btnUsuarios.addActionListener(e -> JOptionPane.showMessageDialog(this, "Se encuentra en el gestor de usuarios."));
-
+        btnUsuarios.addActionListener(e -> abrirVentanaUsuarios());
         toolBar.add(btnGuardar);
         toolBar.add(btnRefrescar);
         toolBar.addSeparator();
@@ -276,4 +275,10 @@ public class VentanaPrincipal extends JFrame {
 
         JOptionPane.showMessageDialog(this, "Usuario registrado con éxito.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
     }
+
+    // Abre la ventana de gestión de usuarios (la usan el menú y la barra de herramientas)
+    private void abrirVentanaUsuarios() {
+        new VentanaUsuarios().setVisible(true);
+    }
+
 }
