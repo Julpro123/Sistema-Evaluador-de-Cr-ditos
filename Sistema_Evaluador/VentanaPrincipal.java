@@ -1,284 +1,354 @@
 package Sistema_Evaluador;
 
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.JTabbedPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.JToolBar;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
-import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 
 public class VentanaPrincipal extends JFrame {
+    private final GestorBD gestor;
 
-    private JProgressBar progressBar;
-    private JTable tablaUsuarios;
-    private DefaultTableModel modeloTabla;
-    private TableRowSorter<DefaultTableModel> sorter;
+    private final JTabbedPane panelPestanias = new JTabbedPane();
+    private final JComboBox<String> comboTipoCliente = new JComboBox<>(new String[] { "Persona Física", "Empresa" });
+    private final JTextField campoNombre = new JTextField(20);
+    private final JSpinner spinnerIngresos = new JSpinner(new SpinnerNumberModel(0.0, 0.0, 1_000_000_000.0, 1000.0));
+    private final JSpinner spinnerGastos = new JSpinner(new SpinnerNumberModel(0.0, 0.0, 1_000_000_000.0, 1000.0));
+    private final JCheckBox checkHistorial = new JCheckBox("Tiene buen historial crediticio");
+    private final JLabel etiquetaRubro = new JLabel("Rubro:");
+    private final JTextField campoRubro = new JTextField(20);
+    private final JLabel etiquetaDirector = new JLabel("Director:");
+    private final JTextField campoDirector = new JTextField(20);
+    private final JButton botonGuardar = new JButton();
+    private final JProgressBar barraProgreso = new JProgressBar();
+    private final DefaultTableModel modeloClientes = new DefaultTableModel(
+            new Object[] { "ID", "Nombre", "Ingresos", "Gastos", "Historial", "Tipo" }, 0) {
+        @Override
+        public boolean isCellEditable(int fila, int columna) {
+            return false;
+        }
+    };
+    private final JTable tablaClientes = new JTable(modeloClientes);
 
-    private JTextField txtNombre;
-    private JTextField txtEmail;
-    private JSpinner spinnerIngresos;
-    private JFormattedTextField txtCuil;
+    private Action accionGuardar;
+    private Action accionRefrescar;
+    private Action accionUsuarios;
+    private Action accionSalir;
 
-    public VentanaPrincipal() {
-        setTitle("Panel General");
+    public VentanaPrincipal(GestorBD gestor) {
+        super("Sistema Evaluador de Créditos");
+        this.gestor = gestor;
+        crearAcciones();
+        configurarComponentes();
+        construirVentana();
+        actualizarCamposTipo();
+        refrescarClientes();
+    }
+
+    private void crearAcciones() {
+        accionGuardar = new AbstractAction("Guardar") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                guardarCliente();
+            }
+        };
+        accionRefrescar = new AbstractAction("Refrescar") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                refrescarClientes();
+            }
+        };
+        accionUsuarios = new AbstractAction("Usuarios") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                abrirVentanaUsuarios();
+            }
+        };
+        accionSalir = new AbstractAction("Salir") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dispose();
+                System.exit(0);
+            }
+        };
+    }
+
+    private void configurarComponentes() {
+        spinnerIngresos.setEditor(new JSpinner.NumberEditor(spinnerIngresos, "#,##0.00"));
+        spinnerGastos.setEditor(new JSpinner.NumberEditor(spinnerGastos, "#,##0.00"));
+        botonGuardar.setAction(accionGuardar);
+        barraProgreso.setStringPainted(true);
+        barraProgreso.setString("Listo");
+        tablaClientes.setAutoCreateRowSorter(true);
+        tablaClientes.setFillsViewportHeight(true);
+        comboTipoCliente.addActionListener(e -> actualizarCamposTipo());
+    }
+
+    private void construirVentana() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(950, 650);
+        setSize(820, 560);
+        setMinimumSize(new Dimension(700, 480));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        setJMenuBar(crearMenuBar());
-        add(crearToolBar(), BorderLayout.NORTH);
-        add(crearSplitPane(), BorderLayout.CENTER);
-        add(crearPanelEstado(), BorderLayout.SOUTH);
+        setJMenuBar(construirMenu());
+        add(construirBarraHerramientas(), BorderLayout.NORTH);
 
-        configurarMenuContextual();
+        panelPestanias.addTab("Nuevo análisis", construirFormulario());
+        panelPestanias.addTab("Base de datos", new JScrollPane(tablaClientes));
+        add(panelPestanias, BorderLayout.CENTER);
+
+        JPanel inferior = new JPanel(new BorderLayout());
+        inferior.setBorder(BorderFactory.createEmptyBorder(4, 8, 8, 8));
+        inferior.add(barraProgreso, BorderLayout.CENTER);
+        add(inferior, BorderLayout.SOUTH);
     }
 
-    private JMenuBar crearMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
+    private JMenuBar construirMenu() {
+        JMenuBar barraMenu = new JMenuBar();
 
         JMenu menuArchivo = new JMenu("Archivo");
-        JMenuItem itemGuardar = new JMenuItem("Guardar Todo");
-        JMenuItem itemSalir = new JMenuItem("Cerrar Sesión / Salir");
-
-        itemGuardar.addActionListener(e -> simularOperacionesBD("Guardando datos en la base de datos..."));
-        itemSalir.addActionListener(e -> {
-            int confirm = JOptionPane.showConfirmDialog(this, "Desea cerrar sesión?", "Salir", JOptionPane.YES_NO_OPTION);
-            if (confirm == JOptionPane.YES_OPTION) {
-                System.exit(0);
-            }
-        });
-
-        menuArchivo.add(itemGuardar);
+        menuArchivo.add(new JMenuItem(accionGuardar));
+        menuArchivo.add(new JMenuItem(accionRefrescar));
         menuArchivo.addSeparator();
-        menuArchivo.add(itemSalir);
+        menuArchivo.add(new JMenuItem(accionSalir));
 
-        JMenu menuGestion = new JMenu("Gestión");
-        JMenuItem itemUsuarios = new JMenuItem("Módulo de Usuarios");
-        itemUsuarios.addActionListener(e -> abrirVentanaUsuarios());
-        menuGestion.add(itemUsuarios);
+        JMenu menuAdministracion = new JMenu("Administración");
+        menuAdministracion.add(new JMenuItem(accionUsuarios));
 
-        menuBar.add(menuArchivo);
-        menuBar.add(menuGestion);
-
-        return menuBar;
+        barraMenu.add(menuArchivo);
+        barraMenu.add(menuAdministracion);
+        return barraMenu;
     }
 
-    private JToolBar crearToolBar() {
-        JToolBar toolBar = new JToolBar();
-        toolBar.setFloatable(false);
-
-        JButton btnGuardar = new JButton("Guardar");
-        JButton btnRefrescar = new JButton("Refrescar");
-        JButton btnUsuarios = new JButton("Usuarios");
-
-        btnGuardar.addActionListener(e -> simularOperacionesBD("Guardando cambios..."));
-        btnRefrescar.addActionListener(e -> simularOperacionesBD("Cargando lista de usuarios desde la BD..."));
-        btnUsuarios.addActionListener(e -> abrirVentanaUsuarios());
-        toolBar.add(btnGuardar);
-        toolBar.add(btnRefrescar);
-        toolBar.addSeparator();
-        toolBar.add(btnUsuarios);
-
-        return toolBar;
+    private JToolBar construirBarraHerramientas() {
+        JToolBar barra = new JToolBar();
+        barra.setFloatable(false);
+        barra.add(new JButton(accionGuardar));
+        barra.add(new JButton(accionRefrescar));
+        barra.addSeparator();
+        barra.add(new JButton(accionUsuarios));
+        return barra;
     }
 
-    private JSplitPane crearSplitPane() {
-        JPanel panelIzquierdo = crearFormularioCliente();
-        JPanel panelDerecho = crearPanelTablaUsuarios();
-
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, panelIzquierdo, panelDerecho);
-        splitPane.setDividerLocation(380);
-        return splitPane;
-    }
-
-    private JPanel crearFormularioCliente() {
+    private JPanel construirFormulario() {
         JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Edición de Cliente"));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 8, 8, 8);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
 
-        gbc.gridx = 0; gbc.gridy = 0;
-        panel.add(new JLabel("Nombre:"), gbc);
-        gbc.gridx = 1;
-        txtNombre = new JTextField(15);
-        panel.add(txtNombre, gbc);
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(6, 6, 6, 6);
+        c.anchor = GridBagConstraints.WEST;
+        c.fill = GridBagConstraints.HORIZONTAL;
 
-        gbc.gridx = 0; gbc.gridy = 1;
-        panel.add(new JLabel("Email:"), gbc);
-        gbc.gridx = 1;
-        txtEmail = new JTextField(15);
-        panel.add(txtEmail, gbc);
+        int fila = 0;
+        agregarFila(panel, c, fila++, new JLabel("Tipo de cliente:"), comboTipoCliente);
+        agregarFila(panel, c, fila++, new JLabel("Nombre:"), campoNombre);
+        agregarFila(panel, c, fila++, new JLabel("Ingresos:"), spinnerIngresos);
+        agregarFila(panel, c, fila++, new JLabel("Gastos:"), spinnerGastos);
+        agregarFila(panel, c, fila++, new JLabel("Historial:"), checkHistorial);
+        agregarFila(panel, c, fila++, etiquetaRubro, campoRubro);
+        agregarFila(panel, c, fila++, etiquetaDirector, campoDirector);
 
-        gbc.gridx = 0; gbc.gridy = 2;
-        panel.add(new JLabel("CUIL/DNI:"), gbc);
-        gbc.gridx = 1;
-        try {
-            javax.swing.text.MaskFormatter mf = new javax.swing.text.MaskFormatter("##-########-#");
-            mf.setPlaceholderCharacter('_');
-            txtCuil = new JFormattedTextField(mf);
-        } catch (Exception e) {
-            txtCuil = new JFormattedTextField();
+        c.gridx = 0;
+        c.gridy = fila;
+        c.gridwidth = 2;
+        c.fill = GridBagConstraints.NONE;
+        c.anchor = GridBagConstraints.CENTER;
+        c.insets = new Insets(18, 6, 6, 6);
+        panel.add(botonGuardar, c);
+
+        c.gridy = fila + 1;
+        c.weighty = 1;
+        c.fill = GridBagConstraints.BOTH;
+        panel.add(new JPanel(), c);
+
+        return panel;
+    }
+
+    private void agregarFila(JPanel panel, GridBagConstraints c, int fila, JLabel etiqueta, java.awt.Component campo) {
+        c.gridy = fila;
+        c.gridwidth = 1;
+        c.weighty = 0;
+        c.anchor = GridBagConstraints.WEST;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.gridx = 0;
+        c.weightx = 0;
+        panel.add(etiqueta, c);
+        c.gridx = 1;
+        c.weightx = 1;
+        panel.add(campo, c);
+    }
+
+    private void actualizarCamposTipo() {
+        boolean esEmpresa = "Empresa".equals(comboTipoCliente.getSelectedItem());
+        etiquetaRubro.setVisible(esEmpresa);
+        campoRubro.setVisible(esEmpresa);
+        etiquetaDirector.setVisible(esEmpresa);
+        campoDirector.setVisible(esEmpresa);
+        if (!esEmpresa) {
+            campoRubro.setText("");
+            campoDirector.setText("");
         }
-        panel.add(txtCuil, gbc);
-
-        gbc.gridx = 0; gbc.gridy = 3;
-        panel.add(new JLabel("Ingresos ($):"), gbc);
-        gbc.gridx = 1;
-        SpinnerNumberModel modelIngresos = new SpinnerNumberModel(150000.0, 0.0, 10000000.0, 10000.0);
-        spinnerIngresos = new JSpinner(modelIngresos);
-        panel.add(spinnerIngresos, gbc);
-
-        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
-        JButton btnRegistrar = new JButton("Registrar Usuario");
-        btnRegistrar.addActionListener(e -> agregarUsuario());
-        panel.add(btnRegistrar, gbc);
-
-        return panel;
+        revalidate();
+        repaint();
     }
 
-    private JPanel crearPanelTablaUsuarios() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Listado de Usuarios Registrados"));
-
-        String[] columnas = {"ID", "Nombre", "Email", "CUIL", "Ingresos"};
-        Object[][] datos = {
-                {1, "Juan Pérez", "juan@mail.com", "20-35123456-8", 250000.0},
-                {2, "Ana López", "ana@mail.com", "27-38987654-4", 410000.0},
-                {3, "Carlos Gómez", "carlos@mail.com", "20-29111222-3", 180000.0}
-        };
-
-        modeloTabla = new DefaultTableModel(datos, columnas) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-
-        tablaUsuarios = new JTable(modeloTabla);
-        sorter = new TableRowSorter<>(modeloTabla);
-        tablaUsuarios.setRowSorter(sorter);
-
-        panel.add(new JScrollPane(tablaUsuarios), BorderLayout.CENTER);
-        return panel;
+    private void setOcupado(boolean ocupado) {
+        accionGuardar.setEnabled(!ocupado);
+        accionRefrescar.setEnabled(!ocupado);
+        accionUsuarios.setEnabled(!ocupado);
+        barraProgreso.setIndeterminate(ocupado);
+        barraProgreso.setString(ocupado ? "Procesando..." : "Listo");
     }
 
-    private void configurarMenuContextual() {
-        JPopupMenu popupMenu = new JPopupMenu();
-
-        JMenuItem itemVerDetalle = new JMenuItem("Ver Detalle");
-        JMenuItem itemEliminar = new JMenuItem("Eliminar Usuario");
-
-        itemVerDetalle.addActionListener(e -> {
-            int row = tablaUsuarios.getSelectedRow();
-            if (row != -1) {
-                int modelRow = tablaUsuarios.convertRowIndexToModel(row);
-                String nombre = (String) modeloTabla.getValueAt(modelRow, 1);
-                JOptionPane.showMessageDialog(this, "Detalle del usuario: " + nombre, "Información", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-
-        itemEliminar.addActionListener(e -> {
-            int row = tablaUsuarios.getSelectedRow();
-            if (row != -1) {
-                int confirm = JOptionPane.showConfirmDialog(this, "Eliminar usuario seleccionado?", "Confirmar", JOptionPane.YES_NO_OPTION);
-                if (confirm == JOptionPane.YES_OPTION) {
-                    int modelRow = tablaUsuarios.convertRowIndexToModel(row);
-                    modeloTabla.removeRow(modelRow);
-                    JOptionPane.showMessageDialog(this, "Usuario eliminado correctamente.");
-                }
-            } else {
-                JOptionPane.showMessageDialog(this, "Seleccione una fila primero.", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        popupMenu.add(itemVerDetalle);
-        popupMenu.add(itemEliminar);
-
-        tablaUsuarios.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) { evaluarPopup(e); }
-            @Override
-            public void mouseReleased(MouseEvent e) { evaluarPopup(e); }
-
-            private void evaluarPopup(MouseEvent e) {
-                if (e.isPopupTrigger()) {
-                    int row = tablaUsuarios.rowAtPoint(e.getPoint());
-                    if (row >= 0 && row < tablaUsuarios.getRowCount()) {
-                        tablaUsuarios.setRowSelectionInterval(row, row);
-                    }
-                    popupMenu.show(e.getComponent(), e.getX(), e.getY());
-                }
-            }
-        });
+    private double leerSpinner(JSpinner spinner) {
+        try {
+            spinner.commitEdit();
+        } catch (java.text.ParseException ex) {
+            spinner.setValue(spinner.getValue());
+        }
+        return ((Number) spinner.getValue()).doubleValue();
     }
 
-    private JPanel crearPanelEstado() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
+    private void guardarCliente() {
+        String nombre = campoNombre.getText().trim();
+        if (nombre.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "El nombre es obligatorio.", "Dato faltante", JOptionPane.WARNING_MESSAGE);
+            campoNombre.requestFocus();
+            return;
+        }
 
-        progressBar = new JProgressBar(0, 100);
-        progressBar.setStringPainted(true);
-        progressBar.setVisible(false);
+        double ingresos = leerSpinner(spinnerIngresos);
+        double gastos = leerSpinner(spinnerGastos);
+        boolean historial = checkHistorial.isSelected();
+        boolean esEmpresa = "Empresa".equals(comboTipoCliente.getSelectedItem());
 
-        panel.add(progressBar, BorderLayout.EAST);
-        return panel;
-    }
-
-    private void simularOperacionesBD(String mensajeTarea) {
-        progressBar.setVisible(true);
-        progressBar.setValue(0);
-
-        SwingWorker<Void, Integer> worker = new SwingWorker<>() {
-            @Override
-            protected Void doInBackground() throws Exception {
-                for (int i = 0; i <= 100; i += 20) {
-                    Thread.sleep(150);
-                    publish(i);
-                }
-                return null;
+        final Cliente cliente;
+        if (esEmpresa) {
+            String rubro = campoRubro.getText().trim();
+            String director = campoDirector.getText().trim();
+            if (rubro.isEmpty() || director.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "El rubro y el director son obligatorios para una empresa.",
+                        "Dato faltante", JOptionPane.WARNING_MESSAGE);
+                return;
             }
+            cliente = new Empresa(nombre, ingresos, gastos, historial, rubro, director);
+        } else {
+            cliente = new PersonaFisica(nombre, ingresos, gastos, historial);
+        }
 
+        setOcupado(true);
+        new SwingWorker<Integer, Void>() {
             @Override
-            protected void process(java.util.List<Integer> chunks) {
-                progressBar.setValue(chunks.get(chunks.size() - 1));
+            protected Integer doInBackground() throws Exception {
+                int id = gestor.guardarCliente(cliente);
+                gestor.guardarDetalle(id, cliente);
+                return id;
             }
 
             @Override
             protected void done() {
-                progressBar.setVisible(false);
-                JOptionPane.showMessageDialog(VentanaPrincipal.this, mensajeTarea + "\nOperación finalizada.", "BD Info", JOptionPane.INFORMATION_MESSAGE);
+                try {
+                    int id = get();
+                    boolean apto = cliente.evaluarRiesgo() > 0;
+                    JOptionPane.showMessageDialog(VentanaPrincipal.this,
+                            "Cliente guardado con ID " + id + ".\nResultado de la evaluación: "
+                                    + (apto ? "APTO para préstamo" : "NO APTO para préstamo"),
+                            "Evaluación completada",
+                            apto ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
+                    limpiarFormulario();
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException ex) {
+                    mostrarError("No se pudo guardar el cliente", ex.getCause());
+                } finally {
+                    setOcupado(false);
+                }
+                refrescarClientes();
             }
-        };
-        worker.execute();
+        }.execute();
     }
 
-    private void agregarUsuario() {
-        String nombre = txtNombre.getText().trim();
-        String email = txtEmail.getText().trim();
-        String cuil = txtCuil.getText().trim();
-        Double ingresos = (Double) spinnerIngresos.getValue();
+    private void refrescarClientes() {
+        setOcupado(true);
+        new SwingWorker<List<Object[]>, Void>() {
+            @Override
+            protected List<Object[]> doInBackground() throws Exception {
+                return gestor.listarClientes();
+            }
 
-        if (nombre.isEmpty() || email.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Debe completar Nombre y Email.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        int nuevoId = modeloTabla.getRowCount() + 1;
-        modeloTabla.addRow(new Object[]{nuevoId, nombre, email, cuil, ingresos});
-
-        txtNombre.setText("");
-        txtEmail.setText("");
-        txtCuil.setValue(null);
-        spinnerIngresos.setValue(150000.0);
-
-        JOptionPane.showMessageDialog(this, "Usuario registrado con éxito.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            @Override
+            protected void done() {
+                try {
+                    List<Object[]> filas = get();
+                    modeloClientes.setRowCount(0);
+                    for (Object[] fila : filas) {
+                        modeloClientes.addRow(fila);
+                    }
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException ex) {
+                    mostrarError("No se pudo cargar el listado de clientes", ex.getCause());
+                } finally {
+                    setOcupado(false);
+                }
+            }
+        }.execute();
     }
 
-    // Abre la ventana de gestión de usuarios (la usan el menú y la barra de herramientas)
     private void abrirVentanaUsuarios() {
-        new VentanaUsuarios().setVisible(true);
+        setOcupado(true);
+        SwingUtilities.invokeLater(() -> {
+            try {
+                VentanaUsuarios ventana = new VentanaUsuarios(gestor);
+                ventana.setVisible(true);
+            } catch (RuntimeException ex) {
+                mostrarError("No se pudo abrir la gestión de usuarios", ex);
+            } finally {
+                setOcupado(false);
+            }
+        });
     }
 
+    private void limpiarFormulario() {
+        campoNombre.setText("");
+        campoRubro.setText("");
+        campoDirector.setText("");
+        spinnerIngresos.setValue(0.0);
+        spinnerGastos.setValue(0.0);
+        checkHistorial.setSelected(false);
+        comboTipoCliente.setSelectedIndex(0);
+    }
+
+    private void mostrarError(String titulo, Throwable causa) {
+        String detalle = causa == null ? "Error desconocido." : causa.getMessage();
+        JOptionPane.showMessageDialog(this, titulo + ":\n" + detalle, "Error", JOptionPane.ERROR_MESSAGE);
+    }
 }

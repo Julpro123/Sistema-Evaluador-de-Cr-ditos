@@ -69,7 +69,7 @@ public class VentanaLogin extends JFrame {
             if (gestor.validarAcceso(usuario, password)) {
                 JOptionPane.showMessageDialog(this, "Bienvenido, " + usuario, "Éxito", JOptionPane.INFORMATION_MESSAGE);
 
-                new VentanaPrincipal().setVisible(true);
+                new VentanaPrincipal(gestor).setVisible(true);
 
                 this.dispose();
             } else {

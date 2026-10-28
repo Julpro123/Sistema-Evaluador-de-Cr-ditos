@@ -36,7 +36,7 @@ public class VentanaUsuarios extends JFrame {
     // ordena la tabla
     private TableRowSorter<DefaultTableModel> sorter;
     // acceso a la base de datos
-    private GestorBD gestor = new GestorBD();
+    private GestorBD gestor;
     // campos y botones del formulario de arriba
     private JTextField campoNombreUsuario;
     private JPasswordField campoClave;
@@ -49,8 +49,16 @@ public class VentanaUsuarios extends JFrame {
     private JProgressBar barraProgreso;
 
 
-    public VentanaUsuarios()
+    // Constructor sin parámetros: crea su propio gestor
+    public VentanaUsuarios() {
+        this(new GestorBD());
+    }
+
+    // Constructor que recibe el gestor de la ventana principal (así se comparte el mismo)
+    public VentanaUsuarios(GestorBD gestor)
     {
+        this.gestor = gestor;
+
         // Definicion de nombre, tamaño, lugar donde aparece y accion al cerrar
         setTitle("Gestion de Usuarios");
         setSize(600,600);
