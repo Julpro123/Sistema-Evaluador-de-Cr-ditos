@@ -10,9 +10,7 @@ public class VentanaLogin extends JFrame {
     private JTextField txtUsuario;
     private JPasswordField txtPassword;
 
-    public static Map<String, String> usuariosRegistrados = new HashMap<>() {{
-        put("admin", "1234");
-    }};
+    public static Map<String, String> usuariosRegistrados = new HashMap<>();
 
     public VentanaLogin() {
         setTitle("Login");
@@ -60,10 +58,10 @@ public class VentanaLogin extends JFrame {
 
         if (usuariosRegistrados.containsKey(usuario) && usuariosRegistrados.get(usuario).equals(password)) {
             JOptionPane.showMessageDialog(this, "Bienvenido, " + usuario, "Éxito", JOptionPane.INFORMATION_MESSAGE);
-            
+
             // Abre la VentanaPrincipal renombrada
             new VentanaPrincipal().setVisible(true);
-            
+
             this.dispose();
         } else {
             JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos.", "Error de Autenticación", JOptionPane.ERROR_MESSAGE);
