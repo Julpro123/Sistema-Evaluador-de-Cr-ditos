@@ -1,4 +1,4 @@
-package Sistema_Evaluador;
+package Sistema_Evaluador.modelo;
 
 public abstract class Cliente {
     // Atributos privados para garantizar el encapsulamiento

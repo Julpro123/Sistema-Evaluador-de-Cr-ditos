@@ -1,4 +1,7 @@
-package Sistema_Evaluador;
+package Sistema_Evaluador.ui;
+
+import Sistema_Evaluador.db.GestorBD;
+import Sistema_Evaluador.modelo.Usuario;
 
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
