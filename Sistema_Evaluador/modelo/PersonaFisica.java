@@ -14,6 +14,11 @@ public class PersonaFisica extends Cliente {
             return 0.0;
         }
 
+        // Sin ingresos no puede pagar el préstamo (además, con 0 el umbral también daría 0 y saldría apto)
+        if (getIngresos() <= 0) {
+            return 0.0;
+        }
+
         // Se calcula el margen entre ingresos y gastos y se compara con un umbral relativo (30% de los ingresos)
         double margen = getIngresos() - getGastos();
         double umbral = getIngresos() * 0.30;
