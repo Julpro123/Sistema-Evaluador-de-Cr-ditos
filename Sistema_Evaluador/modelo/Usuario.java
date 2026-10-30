@@ -1,4 +1,4 @@
-package Sistema_Evaluador;
+package Sistema_Evaluador.modelo;
 
 // Representa un usuario del listado (sin la clave)
 public class Usuario {

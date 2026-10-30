@@ -1,4 +1,9 @@
-package Sistema_Evaluador;
+package Sistema_Evaluador.ui;
+
+import Sistema_Evaluador.db.GestorBD;
+import Sistema_Evaluador.modelo.Cliente;
+import Sistema_Evaluador.modelo.Empresa;
+import Sistema_Evaluador.modelo.PersonaFisica;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;

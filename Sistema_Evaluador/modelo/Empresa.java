@@ -1,4 +1,4 @@
-package Sistema_Evaluador;
+package Sistema_Evaluador.modelo;
 
 public class Empresa extends Cliente {
     private String rubro;

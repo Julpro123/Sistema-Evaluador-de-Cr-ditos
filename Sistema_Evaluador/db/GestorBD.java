@@ -1,4 +1,8 @@
-package Sistema_Evaluador;
+package Sistema_Evaluador.db;
+
+import Sistema_Evaluador.modelo.Cliente;
+import Sistema_Evaluador.modelo.Empresa;
+import Sistema_Evaluador.modelo.Usuario;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

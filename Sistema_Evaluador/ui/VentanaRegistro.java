@@ -1,4 +1,6 @@
-package Sistema_Evaluador;
+package Sistema_Evaluador.ui;
+
+import Sistema_Evaluador.db.GestorBD;
 
 import javax.swing.*;
 import java.awt.*;
