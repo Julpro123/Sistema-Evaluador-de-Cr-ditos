@@ -2,7 +2,6 @@ package Sistema_Evaluador.db;
 
 import Sistema_Evaluador.modelo.Cliente;
 import Sistema_Evaluador.modelo.Empresa;
-import Sistema_Evaluador.modelo.PersonaFisica;
 import Sistema_Evaluador.modelo.Usuario;
 
 import java.sql.Connection;
@@ -51,13 +50,15 @@ public class GestorBD {
 
     // Sección: manejo de clientes.
     public int guardarCliente(Cliente cliente) throws SQLException {
-        String sql = "INSERT INTO clientes (nombre, ingresos, gastos, historial) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO clientes (nombre, ingresos, gastos, historial, apto) VALUES (?, ?, ?, ?, ?)";
         try (Connection cn = getConnection();
              PreparedStatement ps = cn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, cliente.getNombre());
             ps.setDouble(2, cliente.getIngresos());
             ps.setDouble(3, cliente.getGastos());
             ps.setBoolean(4, cliente.isTieneBuenHistorial());
+            // Se guarda el resultado de la evaluación (cada subclase aplica su propia regla)
+            ps.setBoolean(5, cliente.evaluarRiesgo() > 0);
             ps.executeUpdate();
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
@@ -90,10 +91,10 @@ public class GestorBD {
         }
     }
 
-    // Consulta y devuelve una lista resumida de clientes, con el resultado de su evaluación.
+    // Consulta y devuelve una lista resumida de clientes, con el resultado guardado de su evaluación.
     public List<Object[]> listarClientes() throws SQLException {
-        String sql = "SELECT c.id_cliente, c.nombre, c.ingresos, c.gastos, c.historial, "
-                + "e.id_empresa, e.rubro, e.director "
+        String sql = "SELECT c.id_cliente, c.nombre, c.ingresos, c.gastos, c.historial, c.apto, "
+                + "CASE WHEN e.id_empresa IS NOT NULL THEN 'Empresa' ELSE 'Persona Física' END AS tipo "
                 + "FROM clientes c LEFT JOIN empresas e ON e.id_cliente = c.id_cliente "
                 + "ORDER BY c.id_cliente";
         List<Object[]> filas = new ArrayList<>();
@@ -101,28 +102,14 @@ public class GestorBD {
              PreparedStatement ps = cn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                String nombre = rs.getString("nombre");
-                double ingresos = rs.getDouble("ingresos");
-                double gastos = rs.getDouble("gastos");
-                boolean historial = rs.getBoolean("historial");
-                boolean esEmpresa = rs.getObject("id_empresa") != null;
-
-                // Se arma el objeto según su tipo para evaluarlo con su propia regla (polimorfismo)
-                Cliente cliente;
-                if (esEmpresa) {
-                    cliente = new Empresa(nombre, ingresos, gastos, historial, rs.getString("rubro"), rs.getString("director"));
-                } else {
-                    cliente = new PersonaFisica(nombre, ingresos, gastos, historial);
-                }
-
                 filas.add(new Object[] {
                     rs.getInt("id_cliente"),
-                    nombre,
-                    ingresos,
-                    gastos,
-                    historial ? "Bueno" : "Malo",
-                    esEmpresa ? "Empresa" : "Persona Física",
-                    cliente.evaluarRiesgo() > 0 ? "APTO" : "NO APTO"
+                    rs.getString("nombre"),
+                    rs.getDouble("ingresos"),
+                    rs.getDouble("gastos"),
+                    rs.getBoolean("historial") ? "Bueno" : "Malo",
+                    rs.getString("tipo"),
+                    rs.getBoolean("apto") ? "APTO" : "NO APTO"
                 });
             }
         }

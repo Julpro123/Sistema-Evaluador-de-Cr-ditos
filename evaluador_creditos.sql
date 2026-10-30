@@ -7,7 +7,9 @@ CREATE TABLE clientes (
     nombre     VARCHAR(100)  NOT NULL,
     ingresos   DECIMAL(12,2) NOT NULL,
     gastos     DECIMAL(12,2) NOT NULL,
-    historial  BOOLEAN       NOT NULL);
+    historial  BOOLEAN       NOT NULL,
+    -- resultado de la evaluación al momento de guardarlo: TRUE = apto para el crédito
+    apto       BOOLEAN       NOT NULL);
 
 -- Tabla hija: personas físicas
 CREATE TABLE personas_fisicas (
