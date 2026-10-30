@@ -378,6 +378,10 @@ public class VentanaUsuarios extends JFrame {
         setOcupado(true);
         try {
             List<Usuario> usuarios = gestor.listarUsuarios();
+            // La tabla recuerda la última fila marcada aunque no haya selección; se resetea
+            // para que el sorter no la busque mientras se cargan las filas de nuevo
+            tablaUsuarios.getSelectionModel().setAnchorSelectionIndex(-1);
+            tablaUsuarios.getSelectionModel().setLeadSelectionIndex(-1);
             // borra las filas anteriores
             modelo.setRowCount(0);
             for (Usuario u : usuarios) {
