@@ -54,7 +54,7 @@ public class VentanaPrincipal extends JFrame {
     private final JButton botonGuardar = new JButton();
     private final JProgressBar barraProgreso = new JProgressBar();
     private final DefaultTableModel modeloClientes = new DefaultTableModel(
-            new Object[] { "ID", "Nombre", "Ingresos", "Gastos", "Historial", "Tipo" }, 0) {
+            new Object[] { "ID", "Nombre", "Ingresos", "Gastos", "Historial", "Tipo", "Resultado" }, 0) {
         @Override
         public boolean isCellEditable(int fila, int columna) {
             return false;

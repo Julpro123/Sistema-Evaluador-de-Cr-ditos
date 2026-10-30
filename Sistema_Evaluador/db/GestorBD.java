@@ -2,6 +2,7 @@ package Sistema_Evaluador.db;
 
 import Sistema_Evaluador.modelo.Cliente;
 import Sistema_Evaluador.modelo.Empresa;
+import Sistema_Evaluador.modelo.PersonaFisica;
 import Sistema_Evaluador.modelo.Usuario;
 
 import java.sql.Connection;
@@ -89,10 +90,10 @@ public class GestorBD {
         }
     }
 
-    // Consulta y devuelve una lista resumida de clientes.
+    // Consulta y devuelve una lista resumida de clientes, con el resultado de su evaluación.
     public List<Object[]> listarClientes() throws SQLException {
         String sql = "SELECT c.id_cliente, c.nombre, c.ingresos, c.gastos, c.historial, "
-                + "CASE WHEN e.id_empresa IS NOT NULL THEN 'Empresa' ELSE 'Persona Física' END AS tipo "
+                + "e.id_empresa, e.rubro, e.director "
                 + "FROM clientes c LEFT JOIN empresas e ON e.id_cliente = c.id_cliente "
                 + "ORDER BY c.id_cliente";
         List<Object[]> filas = new ArrayList<>();
@@ -100,13 +101,28 @@ public class GestorBD {
              PreparedStatement ps = cn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
+                String nombre = rs.getString("nombre");
+                double ingresos = rs.getDouble("ingresos");
+                double gastos = rs.getDouble("gastos");
+                boolean historial = rs.getBoolean("historial");
+                boolean esEmpresa = rs.getObject("id_empresa") != null;
+
+                // Se arma el objeto según su tipo para evaluarlo con su propia regla (polimorfismo)
+                Cliente cliente;
+                if (esEmpresa) {
+                    cliente = new Empresa(nombre, ingresos, gastos, historial, rs.getString("rubro"), rs.getString("director"));
+                } else {
+                    cliente = new PersonaFisica(nombre, ingresos, gastos, historial);
+                }
+
                 filas.add(new Object[] {
                     rs.getInt("id_cliente"),
-                    rs.getString("nombre"),
-                    rs.getDouble("ingresos"),
-                    rs.getDouble("gastos"),
-                    rs.getBoolean("historial") ? "Bueno" : "Malo",
-                    rs.getString("tipo")
+                    nombre,
+                    ingresos,
+                    gastos,
+                    historial ? "Bueno" : "Malo",
+                    esEmpresa ? "Empresa" : "Persona Física",
+                    cliente.evaluarRiesgo() > 0 ? "APTO" : "NO APTO"
                 });
             }
         }

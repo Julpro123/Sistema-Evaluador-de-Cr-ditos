@@ -26,8 +26,9 @@ CREATE TABLE empresas (
 -- Tabla de acceso (independiente de la jerarquía)
 CREATE TABLE usuarios (
     id_usuario     INT AUTO_INCREMENT PRIMARY KEY,
-    nombre_usuario VARCHAR(50) NOT NULL UNIQUE,
-    clave VARCHAR(100) COLLATE utf8mb4_bin NOT NULL);
+    -- utf8mb4_bin: usuario y clave distinguen mayúsculas ("admin" no es igual a "ADMIN")
+    nombre_usuario VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL UNIQUE,
+    clave          VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL);
 
 -- Usuario inicial para probar el login
 INSERT INTO usuarios (nombre_usuario, clave) VALUES ('admin', 'admin123');
