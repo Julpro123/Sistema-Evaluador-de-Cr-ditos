@@ -21,16 +21,18 @@ public class Empresa extends Cliente {
 
     @Override
     public double evaluarRiesgo() {
-        // Controlar el caso en que los gastos sean cero para evitar división inválida
+        // Convención: 0 = no apto, 1 = apto
+        // Controlar el caso en que los gastos sean cero para evitar división inválida:
+        // sin gastos y con ingresos es apto; sin ingresos, no
         if (getGastos() == 0) {
-            return (getIngresos() > 0) ? 0.0 : 1.0;
+            return (getIngresos() > 0) ? 1.0 : 0.0;
         }
 
         // Se calcula el ratio entre ingresos y gastos
         double ratio = getIngresos() / getGastos();
         double umbralRatio = 1.5; // Umbral requerido para empresas
 
-        // Si el ratio supera el umbral, el riesgo es bajo; de lo contrario, es alto
-        return (ratio >= umbralRatio) ? 0.2 : 0.8;
+        // Si el ratio alcanza el umbral es apto; si no, no apto
+        return (ratio >= umbralRatio) ? 1.0 : 0.0;
     }
 }
