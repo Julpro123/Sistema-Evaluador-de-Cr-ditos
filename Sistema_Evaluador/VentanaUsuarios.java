@@ -10,7 +10,10 @@ import java.awt.event.MouseEvent;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
-import java.awt.GridLayout;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.sql.SQLException;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -42,6 +45,7 @@ public class VentanaUsuarios extends JFrame {
     private JPasswordField campoClave;
     private JButton botonCrearUsuario;
     private JButton botonModificarUsuario;
+    private JButton botonLimpiar;
     // botones del listado
     private JButton botonEliminarUsuario;
     private JButton botonRefrescar;
@@ -65,23 +69,38 @@ public class VentanaUsuarios extends JFrame {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
-        /* Formulario en una grilla de 3 filas y 2 columnas:
-           etiqueta + campo para usuario y clave, y los botones crear y modificar */
-        panelSuperior = new JPanel(new GridLayout(3, 2, 5, 5));
-        campoNombreUsuario = new JTextField();
-        campoClave = new JPasswordField();
+        /* Formulario con GridBagLayout: etiqueta + campo para usuario y clave
+           (las etiquetas no se estiran y los campos sí) y abajo los botones crear, modificar y limpiar */
+        panelSuperior = new JPanel(new GridBagLayout());
+        campoNombreUsuario = new JTextField(20);
+        campoClave = new JPasswordField(20);
         botonCrearUsuario = new JButton("Crear usuario");
         botonModificarUsuario = new JButton("Modificar usuario");
+        botonLimpiar = new JButton("Limpiar");
 
-        panelSuperior.add(new JLabel("Usuario:"));
-        panelSuperior.add(campoNombreUsuario);
-        panelSuperior.add(new JLabel("Clave:"));
-        panelSuperior.add(campoClave);
-        panelSuperior.add(botonCrearUsuario);
-        panelSuperior.add(botonModificarUsuario);
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(5, 5, 5, 5);
+
+        c.gridx = 0; c.gridy = 0; c.anchor = GridBagConstraints.WEST;
+        panelSuperior.add(new JLabel("Usuario:"), c);
+        c.gridx = 1; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
+        panelSuperior.add(campoNombreUsuario, c);
+
+        c.gridx = 0; c.gridy = 1; c.weightx = 0; c.fill = GridBagConstraints.NONE;
+        panelSuperior.add(new JLabel("Clave:"), c);
+        c.gridx = 1; c.weightx = 1; c.fill = GridBagConstraints.HORIZONTAL;
+        panelSuperior.add(campoClave, c);
+
+        JPanel panelBotonesFormulario = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        panelBotonesFormulario.add(botonLimpiar);
+        panelBotonesFormulario.add(botonModificarUsuario);
+        panelBotonesFormulario.add(botonCrearUsuario);
+        c.gridx = 0; c.gridy = 2; c.gridwidth = 2;
+        panelSuperior.add(panelBotonesFormulario, c);
 
         botonCrearUsuario.addActionListener(e -> crearUsuario());
         botonModificarUsuario.addActionListener(e -> modificarUsuario());
+        botonLimpiar.addActionListener(e -> limpiarFormulario());
 
         panelInferior = new JPanel(new BorderLayout());
 
@@ -178,6 +197,8 @@ public class VentanaUsuarios extends JFrame {
 
         // Barra de progreso debajo de los botones
         barraProgreso = new JProgressBar();
+        barraProgreso.setStringPainted(true);
+        barraProgreso.setString("Listo");
 
         JPanel panelSur = new JPanel(new BorderLayout());
         panelSur.add(panelBotones, BorderLayout.CENTER);
@@ -201,11 +222,22 @@ public class VentanaUsuarios extends JFrame {
             return;
         }
 
+        // Mismo largo máximo que las columnas de la tabla usuarios (VARCHAR(50) y VARCHAR(100))
+        if (nombre.length() > 50) {
+            JOptionPane.showMessageDialog(this, "El usuario no puede tener más de 50 caracteres.",
+                    "Datos inválidos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (clave.length() > 100) {
+            JOptionPane.showMessageDialog(this, "La clave no puede tener más de 100 caracteres.",
+                    "Datos inválidos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         setOcupado(true);
         try {
             gestor.insertarUsuario(nombre, clave);
-            campoNombreUsuario.setText("");
-            campoClave.setText("");
+            limpiarFormulario();
             cargarUsuarios();
         } catch (SQLIntegrityConstraintViolationException ex) {
             // El nombre ya existe (restricción UNIQUE de la tabla)
@@ -256,6 +288,18 @@ public class VentanaUsuarios extends JFrame {
             return;
         }
 
+        // Mismo largo máximo que las columnas de la tabla usuarios (VARCHAR(50) y VARCHAR(100))
+        if (nuevoNombre.length() > 50) {
+            JOptionPane.showMessageDialog(this, "El usuario no puede tener más de 50 caracteres.",
+                    "Datos inválidos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (nuevaClave.length() > 100) {
+            JOptionPane.showMessageDialog(this, "La clave no puede tener más de 100 caracteres.",
+                    "Datos inválidos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         setOcupado(true);
         try {
             boolean modificado = gestor.modificarUsuario(id, nuevoNombre, nuevaClave);
@@ -263,8 +307,7 @@ public class VentanaUsuarios extends JFrame {
                 JOptionPane.showMessageDialog(this, "El usuario ya no existe en la base.",
                         "Aviso", JOptionPane.INFORMATION_MESSAGE);
             }
-            campoNombreUsuario.setText("");
-            campoClave.setText("");
+            limpiarFormulario();
             cargarUsuarios();
         } catch (SQLIntegrityConstraintViolationException ex) {
             // El nombre nuevo ya lo tiene otro usuario (restricción UNIQUE)
@@ -296,6 +339,13 @@ public class VentanaUsuarios extends JFrame {
         int id = (int) modelo.getValueAt(filaModelo, 0);
         String nombre = (String) modelo.getValueAt(filaModelo, 1);
 
+        // No se permite borrar el último usuario: nadie podría volver a iniciar sesión
+        if (modelo.getRowCount() <= 1) {
+            JOptionPane.showMessageDialog(this, "No se puede eliminar el último usuario del sistema.",
+                    "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
         int respuesta = JOptionPane.showConfirmDialog(this,  "¿Eliminar al usuario \"" + nombre + "\"?", "Confirmar eliminación", JOptionPane.YES_NO_OPTION);
 
         // el operador canceló
@@ -309,6 +359,8 @@ public class VentanaUsuarios extends JFrame {
             if (!eliminado) {
                 JOptionPane.showMessageDialog(this,  "El usuario ya no existe en la base.", "Aviso", JOptionPane.INFORMATION_MESSAGE);
             }
+            // si no se limpia, el nombre del usuario borrado queda escrito en el formulario
+            limpiarFormulario();
             cargarUsuarios();
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this, "No se pudo eliminar el usuario: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -340,9 +392,21 @@ public class VentanaUsuarios extends JFrame {
     // Activa o detiene la barra de progreso y bloquea los botones mientras hay una operación con la base
     private void setOcupado(boolean ocupado) {
         barraProgreso.setIndeterminate(ocupado);
+        barraProgreso.setString(ocupado ? "Procesando..." : "Listo");
         botonCrearUsuario.setEnabled(!ocupado);
         botonEliminarUsuario.setEnabled(!ocupado);
         botonModificarUsuario.setEnabled(!ocupado);
+        botonLimpiar.setEnabled(!ocupado);
         botonRefrescar.setEnabled(!ocupado);
+        // Dibuja la barra en el momento; si no, Swing la pinta recién cuando termina la consulta y nunca se ve
+        barraProgreso.paintImmediately(0, 0, barraProgreso.getWidth(), barraProgreso.getHeight());
+    }
+
+    // Vacía los campos y quita la selección de la tabla para dejar el formulario listo para un usuario nuevo
+    private void limpiarFormulario() {
+        campoNombreUsuario.setText("");
+        campoClave.setText("");
+        tablaUsuarios.clearSelection();
+        campoNombreUsuario.requestFocusInWindow();
     }
 }
