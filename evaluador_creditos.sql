@@ -27,7 +27,7 @@ CREATE TABLE empresas (
 CREATE TABLE usuarios (
     id_usuario     INT AUTO_INCREMENT PRIMARY KEY,
     nombre_usuario VARCHAR(50) NOT NULL UNIQUE,
-    clave          VARCHAR(100) NOT NULL);
+    clave VARCHAR(100) COLLATE utf8mb4_bin NOT NULL);
 
 -- Usuario inicial para probar el login
 INSERT INTO usuarios (nombre_usuario, clave) VALUES ('admin', 'admin123');

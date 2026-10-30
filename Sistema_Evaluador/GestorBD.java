@@ -22,7 +22,7 @@ public class GestorBD {
         this(
             valorEntorno("DB_URL", "jdbc:mysql://localhost:3306/evaluador_creditos"),
             valorEntorno("DB_USER", "root"),
-            valorEntorno("DB_PASS", "1411")
+            valorEntorno("DB_PASS", "")
         );
     }
 
